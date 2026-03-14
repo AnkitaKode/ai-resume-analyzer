@@ -9,4 +9,4 @@ spring.jpa.show-sql=false
 spring.ai.openai.api-key=your_openai_api_key
 spring.ai.openai.chat.options.model=gpt-4o
 spring.ai.openai.embedding.options.model=text-embedding-3-small
-app.cors.allowed-origins=http://localhost:3000
+app.cors.allowed-origins=https://ai-resume-analyzer-rag.vercel.app/
