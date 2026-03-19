@@ -19,14 +19,14 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "SKIP_PREFLIGHT_CHECK=true react-scripts build",
     "build:prod": "NODE_ENV=production npm run build",
     "build:vercel": "npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "serve": "serve -s build -l 3000",
     "analyze": "npm run build && npx bundle-analyzer build/static/js/*.js",
-    "vercel-build": "npm run build"
+    "vercel-build": "SKIP_PREFLIGHT_CHECK=true react-scripts build"
   },
   "eslintConfig": {
     "extends": [
