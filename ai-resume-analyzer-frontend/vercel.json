@@ -1,0 +1,7 @@
+{
+  "rootDirectory": "ai-resume-analyzer-frontend",
+  "buildCommand": "npm run build",
+  "outputDirectory": "ai-resume-analyzer-frontend/build",
+  "framework": "create-react-app",
+  "installCommand": "npm install --legacy-peer-deps"
+}
