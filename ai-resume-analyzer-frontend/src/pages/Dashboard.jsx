@@ -45,7 +45,7 @@ const StatsRow = () => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
     {[
       { value: "98%",    label: "Accuracy Rate",      icon: "🎯", color: "#22c55e" },
-      { value: "3s",     label: "Avg Analysis Time",  icon: "⚡", color: "#ffbe0b" },
+      { value: "10s",     label: "Avg Analysis Time",  icon: "⚡", color: "#ffbe0b" },
       { value: "50+",    label: "ATS Keywords Found",  icon: "🔍", color: "#a78bfa" },
       { value: "RAG",    label: "AI Search Engine",    icon: "🧠", color: "#ff6b35" },
     ].map((s, i) => (
