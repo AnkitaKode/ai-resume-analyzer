@@ -25,4 +25,4 @@ export const SAMPLE_QUESTIONS = [
   "What ATS keywords am I missing?",
   "Summarize my work experience.",
   "What roles am I best suited for?",
-];
+]; 
