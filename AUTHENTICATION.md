@@ -244,7 +244,7 @@ The application supports dual Spring Boot profiles configured in `application.pr
 
 ### 2. `prod` Profile (Cloud Deployment - Ultra Fast & Free)
 - **Engine**: **Groq Cloud API** (OpenAI-compatible) via `https://api.groq.com/openai`
-- **Chat Model**: `llama-3.1-8b-instant` (~500+ tokens/sec, instant response time)
+- **Chat Model**: `openai/gpt-oss-20b` (~500+ tokens/sec, instant response time)
 - **Embedding Model**:
   - Uses OpenAI `text-embedding-3-small` if `OPENAI_API_KEY` is provided.
   - If no OpenAI key is set, automatically uses the built-in resilient 384-dimensional feature vectorizer (`AiConfig.LocalFeatureEmbeddingModel`) for **zero API costs and zero external quota dependency**.
