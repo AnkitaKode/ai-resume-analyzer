@@ -101,12 +101,18 @@ public class EmbeddingService {
     }
 
     /**
-     * Retrieves top-K relevant chunks using cosine similarity.
-     * Streams through chunks to avoid loading everything into memory at once.
+     * Retrieves top-K relevant chunks using cosine similarity, strictly isolating
+     * chunks to the specified resume and user owner.
      */
-    public List<String> retrieveRelevantChunks(String resumeId, String query, int topK) {
+    public List<String> retrieveRelevantChunks(String resumeId, String userId, String query, int topK) {
         float[] queryEmbedding = embeddingModel.embed(query);
-        List<ResumeChunk> allChunks = chunkRepository.findAllByResumeId(resumeId);
+        List<ResumeChunk> allChunks;
+
+        if (userId != null) {
+            allChunks = chunkRepository.findAllByResumeIdAndUserId(resumeId, userId);
+        } else {
+            allChunks = chunkRepository.findAllByResumeId(resumeId);
+        }
 
         List<String> results = allChunks.stream()
                 .map(chunk -> {
@@ -123,6 +129,10 @@ public class EmbeddingService {
         // Help GC
         allChunks.clear();
         return results;
+    }
+
+    public List<String> retrieveRelevantChunks(String resumeId, String query, int topK) {
+        return retrieveRelevantChunks(resumeId, null, query, topK);
     }
 
     private double cosineSimilarity(float[] a, float[] b) {

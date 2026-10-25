@@ -38,6 +38,11 @@ public class Resume {
     @Column
     private String status; // UPLOADED | ANALYZED
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

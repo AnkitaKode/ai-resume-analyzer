@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import UploadResume from "../components/UploadResume";
 import ResumeScore from "../components/ResumeScore";
 import Chatbot from "../components/Chatbot";
@@ -228,19 +230,27 @@ const TipsCard = () => (
   </div>
 );
 
+const getInitials = (name) => {
+  if (!name) return "U";
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+};
+
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const { user, isGuest, logout, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState("upload");
   const [resumeData, setResumeData] = useState(null);
 
   const handleAnalysisComplete = (data) => {
     setResumeData(data);
     setActiveTab("analysis");
+    refreshUser();
   };
 
   const handleNewResume = () => {
     setResumeData(null);
     setActiveTab("upload");
+    refreshUser();
   };
 
   return (
@@ -256,21 +266,108 @@ const Dashboard = () => {
       <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <header className="flex items-center justify-between mb-10 animate-fade-up">
+        <header className="flex items-center justify-between mb-8 animate-fade-up">
           <Logo />
-          <div className="flex items-center gap-4">
-            <StatBadge value="Llama3" label="Model" color="#22c55e" />
-            <StatBadge value="RAG" label="Search" color="#a78bfa" />
-            <StatBadge value="v1.0" label="Version" color="#ffbe0b" />
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-3">
+              <StatBadge value="Llama3" label="Model" color="#22c55e" />
+              <StatBadge value="RAG" label="Search" color="#a78bfa" />
+            </div>
+
             {resumeData && (
               <button onClick={handleNewResume}
-                className="text-xs px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#6b6b85" }}>
+                className="text-xs px-3.5 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#8a8aa5" }}>
                 ↑ New Resume
               </button>
             )}
+
+            {/* User Profile Pill */}
+            {user && (
+              <div
+                className="flex items-center gap-2.5 py-1 px-2.5 rounded-xl text-xs"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px]"
+                  style={{
+                    background: isGuest ? "rgba(255,190,11,0.15)" : "rgba(34,197,94,0.15)",
+                    color: isGuest ? "#ffbe0b" : "#22c55e",
+                  }}
+                >
+                  {getInitials(user.fullName)}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="font-medium text-xs leading-none truncate max-w-[120px]" style={{ color: "#f0f0f5" }}>
+                    {user.fullName || "User"}
+                  </p>
+                  <span
+                    className="text-[9px] font-semibold uppercase tracking-wider"
+                    style={{ color: isGuest ? "#ffbe0b" : "#22c55e" }}
+                  >
+                    {isGuest ? "Guest" : "Verified"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Logout button */}
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="text-xs px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              style={{
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                color: "#ef4444",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
+
+        {/* Guest Mode Notification Banner */}
+        {isGuest && (
+          <div
+            className="mb-8 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-up"
+            style={{
+              background: "rgba(255,190,11,0.06)",
+              border: "1px solid rgba(255,190,11,0.2)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚡</span>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: "#ffbe0b" }}>
+                  Exploring in Guest Mode
+                </p>
+                <p className="text-xs" style={{ color: "#a0a0b5" }}>
+                  Used: {user?.uploadCount || 0}/2 uploads · {user?.chatMessageCount || 0}/5 questions. Create an account to preserve your resumes and get unlimited analysis.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="text-xs px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition-all duration-200 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, #ff6b35, #ffbe0b)",
+                color: "#050508",
+              }}
+            >
+              Save My Resumes →
+            </Link>
+          </div>
+        )}
 
         {/* Hero */}
         <div className="text-center mb-10 animate-fade-up stagger-1">

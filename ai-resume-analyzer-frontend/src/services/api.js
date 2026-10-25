@@ -1,9 +1,17 @@
 import axios from "axios";
 import { API_BASE_URL } from "../utils/constants";
 
+// Root backend URL (without /api) for OAuth authorization endpoints
+export const BACKEND_ROOT_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL.slice(0, -4)
+  : API_BASE_URL.replace(/\/api\/?$/, "");
+
+export const GOOGLE_AUTH_URL = `${BACKEND_ROOT_URL}/oauth2/authorization/google`;
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true, // Send HTTP-only cookies on all requests
 });
 
 // Request interceptor
@@ -16,10 +24,41 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || "Something went wrong";
-    return Promise.reject(new Error(message));
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      "Something went wrong";
+    const status = error.response?.status;
+    const customError = new Error(message);
+    customError.status = status;
+    customError.response = error.response;
+    return Promise.reject(customError);
   }
 );
+
+// ── Auth API ───────────────────────────────────────────────────────────────
+
+export const signInApi = (data) => api.post("/auth/signin", data);
+
+export const signUpApi = (data) => api.post("/auth/signup", data);
+
+export const continueAsGuestApi = () => api.post("/auth/guest");
+
+export const getCurrentUserApi = () => api.get("/auth/me");
+
+export const logoutApi = () => api.post("/auth/logout");
+
+export const forgotPasswordApi = (email) =>
+  api.post("/auth/forgot-password", { email });
+
+export const resetPasswordApi = (token, newPassword) =>
+  api.post("/auth/reset-password", { token, newPassword });
+
+export const transferGuestDataApi = (guestSessionToken) =>
+  api.post("/auth/transfer-guest-data", { guestSessionToken });
+
+// ── Resume API ─────────────────────────────────────────────────────────────
 
 /**
  * Upload resume PDF/DOCX

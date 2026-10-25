@@ -3,11 +3,15 @@ package com.resumeai.ai_resume_analyzer.service;
 import com.resumeai.ai_resume_analyzer.dto.ResumeAnalysisResponse;
 import com.resumeai.ai_resume_analyzer.dto.UploadResponse;
 import com.resumeai.ai_resume_analyzer.model.Resume;
+import com.resumeai.ai_resume_analyzer.model.User;
 import com.resumeai.ai_resume_analyzer.repository.ResumeRepository;
+import com.resumeai.ai_resume_analyzer.repository.UserRepository;
+import com.resumeai.ai_resume_analyzer.security.SecurityUtils;
 import com.resumeai.ai_resume_analyzer.util.DocxExtractor;
 import com.resumeai.ai_resume_analyzer.util.PdfExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,19 +22,35 @@ import org.springframework.web.multipart.MultipartFile;
 public class ResumeService {
 
     private final ResumeRepository resumeRepository;
+    private final UserRepository userRepository;
     private final PdfExtractor pdfExtractor;
     private final DocxExtractor docxExtractor;
     private final EmbeddingService embeddingService;
     private final AnalysisService analysisService;
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    public static final int GUEST_MAX_UPLOADS = 2;
 
     /**
      * Handles upload: extract text → persist → embed chunks.
+     * Enforces user ownership and guest upload limits.
      */
     @Transactional
     public UploadResponse upload(MultipartFile file) {
         validateFile(file);
+
+        String currentUserId = SecurityUtils.getCurrentUserId()
+                .orElseThrow(() -> new AccessDeniedException("Authentication required to upload a resume."));
+
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AccessDeniedException("User account not found."));
+
+        if (Boolean.TRUE.equals(user.getIsGuest())) {
+            long existingCount = resumeRepository.countByUserId(user.getId());
+            if (existingCount >= GUEST_MAX_UPLOADS) {
+                throw new IllegalArgumentException("Guest upload limit reached (max " + GUEST_MAX_UPLOADS + " resumes). Please create an account or sign in to upload more.");
+            }
+        }
 
         String originalName = file.getOriginalFilename();
         String ext = getExtension(originalName);
@@ -53,12 +73,16 @@ public class ResumeService {
                 .rawText(rawText)
                 .fileSize(file.getSize())
                 .status("UPLOADED")
+                .user(user)
                 .build();
 
         resume = resumeRepository.save(resume);
-        log.info("Saved resume {} ({})", resume.getId(), originalName);
+        user.setUploadCount((user.getUploadCount() != null ? user.getUploadCount() : 0) + 1);
+        userRepository.save(user);
 
-        // Async-safe: embed in same thread (can move to @Async later)
+        log.info("Saved resume {} ({}) for user {}", resume.getId(), originalName, user.getId());
+
+        // Async-safe: embed in same thread
         embeddingService.embedAndStore(resume);
 
         return UploadResponse.builder()
@@ -73,11 +97,14 @@ public class ResumeService {
 
     /**
      * Runs AI analysis on an already-uploaded resume.
+     * Verifies resume ownership.
      */
     @Transactional
     public ResumeAnalysisResponse analyze(String resumeId) {
         Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new RuntimeException("Resume not found: " + resumeId));
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found: " + resumeId));
+
+        verifyResumeOwnership(resume);
 
         ResumeAnalysisResponse result = analysisService.analyze(resumeId, resume.getRawText());
 
@@ -87,9 +114,27 @@ public class ResumeService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public Resume getById(String id) {
-        return resumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Resume not found: " + id));
+        Resume resume = resumeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found: " + id));
+
+        verifyResumeOwnership(resume);
+        return resume;
+    }
+
+    public void verifyResumeOwnership(Resume resume) {
+        if (resume.getUser() == null) {
+            return; // Legacy resume without user
+        }
+        String currentUserId = SecurityUtils.getCurrentUserId()
+                .orElseThrow(() -> new AccessDeniedException("Authentication required to access this resume."));
+
+        if (!resume.getUser().getId().equals(currentUserId)) {
+            log.warn("Access denied: User {} attempted to access resume {} owned by {}",
+                    currentUserId, resume.getId(), resume.getUser().getId());
+            throw new AccessDeniedException("You do not have permission to access this resume.");
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

@@ -3,3 +3,14 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Mock pure-ESM react-markdown for Jest test environment
+jest.mock('react-markdown', () => {
+  return function MockMarkdown({ children }) {
+    return <div data-testid="mock-markdown">{children}</div>;
+  };
+});

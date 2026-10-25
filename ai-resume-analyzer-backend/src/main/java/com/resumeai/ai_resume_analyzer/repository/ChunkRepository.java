@@ -17,7 +17,9 @@ public interface ChunkRepository extends JpaRepository<ResumeChunk, String> {
     @Query("SELECT c FROM ResumeChunk c WHERE c.resume.id = :resumeId")
     List<ResumeChunk> findAllByResumeId(@Param("resumeId") String resumeId);
 
-    // @Transactional is required for delete derived queries
+    @Query("SELECT c FROM ResumeChunk c WHERE c.resume.id = :resumeId AND c.resume.user.id = :userId")
+    List<ResumeChunk> findAllByResumeIdAndUserId(@Param("resumeId") String resumeId, @Param("userId") String userId);
+
     @Transactional
     void deleteByResumeId(String resumeId);
 }
