@@ -6,7 +6,7 @@ export const BACKEND_ROOT_URL = API_BASE_URL.endsWith("/api")
   ? API_BASE_URL.slice(0, -4)
   : API_BASE_URL.replace(/\/api\/?$/, "");
 
-export const GOOGLE_AUTH_URL = `https://ai-resume-analyzer-jrl3.onrender.com/oauth2/authorization/google`;
+export const GOOGLE_AUTH_URL = `${BACKEND_ROOT_URL}/oauth2/authorization/google`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
