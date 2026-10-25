@@ -12,6 +12,7 @@ import com.resumeai.ai_resume_analyzer.repository.ResumeRepository;
 import com.resumeai.ai_resume_analyzer.repository.UserRepository;
 import com.resumeai.ai_resume_analyzer.security.CookieUtils;
 import com.resumeai.ai_resume_analyzer.security.JwtTokenProvider;
+import com.resumeai.ai_resume_analyzer.security.SecurityUtils;
 import com.resumeai.ai_resume_analyzer.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -256,7 +257,17 @@ public class AuthService {
         return mapToDto(user);
     }
 
+    @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
+        SecurityUtils.getCurrentUserId().ifPresent(userId -> {
+            userRepository.findById(userId).ifPresent(user -> {
+                if (Boolean.TRUE.equals(user.getIsGuest())) {
+                    resumeRepository.findByUserIdOrderByCreatedAtDesc(userId).forEach(resumeRepository::delete);
+                    userRepository.delete(user);
+                    log.info("Cleaned up temporary guest session and resumes for guest {}", userId);
+                }
+            });
+        });
         CookieUtils.deleteCookie(request, response, CookieUtils.AUTH_COOKIE_NAME, cookieSecure);
         SecurityContextHolder.clearContext();
     }

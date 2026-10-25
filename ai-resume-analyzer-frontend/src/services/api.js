@@ -14,9 +14,15 @@ const api = axios.create({
   withCredentials: true, // Send HTTP-only cookies on all requests
 });
 
-// Request interceptor
+// Request interceptor to attach Bearer token if present
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem("resumeai_jwt_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -71,7 +77,7 @@ export const uploadResume = (file, onProgress) => {
   formData.append("file", file);
 
   return api.post("/resume/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": undefined },
     onUploadProgress: (e) => {
       if (onProgress && e.total) {
         onProgress(Math.round((e.loaded * 100) / e.total));

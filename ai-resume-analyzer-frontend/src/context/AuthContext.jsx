@@ -11,6 +11,7 @@ import {
 const AuthContext = createContext(null);
 
 export const GUEST_TOKEN_KEY = "resumeai_guest_token";
+export const TOKEN_STORAGE_KEY = "resumeai_jwt_token";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -38,6 +39,11 @@ export const AuthProvider = ({ children }) => {
     const params = new URLSearchParams(window.location.search);
     const oauthSuccess = params.get("oauth_success");
     const oauthError = params.get("error");
+    const oauthToken = params.get("token");
+
+    if (oauthToken) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, oauthToken);
+    }
 
     if (oauthSuccess) {
       // Clear query params from browser URL without refresh
@@ -55,6 +61,9 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const res = await signInApi({ email, password, rememberMe });
+      if (res.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      }
       setUser(res.user);
       return res;
     } catch (err) {
@@ -68,6 +77,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const guestSessionToken = sessionStorage.getItem(GUEST_TOKEN_KEY) || undefined;
       const res = await signUpApi({ fullName, email, password, guestSessionToken });
+      if (res.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      }
       setUser(res.user);
       sessionStorage.removeItem(GUEST_TOKEN_KEY);
       return res;
@@ -81,6 +93,9 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const res = await continueAsGuestApi();
+      if (res.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      }
       setUser(res.user);
       if (res.user?.guestSessionToken) {
         sessionStorage.setItem(GUEST_TOKEN_KEY, res.user.guestSessionToken);
@@ -98,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn("Logout error:", err);
     } finally {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
       setUser(null);
       sessionStorage.removeItem(GUEST_TOKEN_KEY);
     }
